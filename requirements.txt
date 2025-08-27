@@ -1,0 +1,9 @@
+faiss-cpu
+sentence-transformers
+transformers
+torch
+pdfplumber
+python-docx
+pdf2image
+pytesseract
+Pillow
