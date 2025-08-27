@@ -46,6 +46,57 @@ Reporesentation of a complex data (like text or images) as a vector of numbers
 
 ### Problem
 
-General embeddings can match common semantic relations, but may miss special relations.
+General embeddings can match common semantic relations, but may miss special relations like medical vocabulary and semantics of the dataset.
 
-In progres...
+This problem can be solved by fune-tuning.
+
+### Fine-tune
+
+1. From scratch: expensive, needs large dataset
+2. Domain-adapt existing models
+    - Text: `sentence-transformers/all-MiniLM-L6-v2` or `BioClinicalBERT`
+    - Images: `openai/clip-vit-base-patch32` or `medCLIP`
+
+#### Steps
+
+1. Prepare data
+    - Collect documents (PDFs, DOCXs, images)
+    - Create test pairs
+        - Search query | Expected result (features)
+2. Choose model (for base)
+    - Text: Sentence-BERT (`sentence-transformers`)
+    - Image+Text: CLIP (`transformers`)
+3. Training Loop (contrastive learning)
+    - The model learns to bring embeddings of query and correct result closer together
+4. Evaluate
+    - Check retrieval accuracy
+5. Deploy
+    - Save fine-tuned embeddings model
+
+```python
+from sentence_transformers import SentenceTransformer, InputExample, losses
+from torch.utils.data import DataLoader
+
+# Step 1: Load base model
+model = SentenceTransformer("sentence-tranformers/all-MiniLM-L6-v2")
+
+# Step 2: Prepare training data
+train_examples = [
+    InputExample(texts=[]),
+]
+
+# Step 3: Dataloader
+train_dataloader = DataLoader(train_examples, shuffle=true, batch_size=4)
+
+# Step 4: Loss (contrastive / multiple negatives)
+train_loss = losses.MultipleNegativesRankingLoss(model)
+
+# Step 5: Train
+model.fit(
+    train_objectives=[(train_dataloader, train_loss)],
+    epochs=3,
+    output_path="models/medsearch-text"
+)
+```
+
+With fine-tuning the model learns synonyms, abbreviations and context
