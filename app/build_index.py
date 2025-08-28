@@ -14,7 +14,38 @@ from docx import Document
 from PIL import Image
 import faiss, numpy as np, torch
 from sentence_transformers import SentenceTransformer
-from transformers import CLIPProcessor, CLIPModel
+from transformers import CLIPProcessor, CLIPModel, AutoTokenizer, AutoModelForTokenClassification, pipeline
+
+def extract_pairs(text: str):
+    # model_name = "d4data/biomedical-ner-all"
+    # model_name = "samrawal/bert-base-uncased_clinical-ner"
+    model_name = "dmis-lab/biobert-base-cased-v1.1"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForTokenClassification.from_pretrained(model_name)
+    ner_pipeline = pipeline("ner", model=model, tokenizer=tokenizer, aggregation_strategy="simple")
+
+    results = ner_pipeline(text)
+    pairs = []
+    current_name, current_value = None, None
+
+    print(results)
+
+    for ent in results:
+        label = ent["entity_group"]
+        word = ent["word"]
+
+        if label in ["Diagnostic_procedure"]:
+            current_name = word
+        elif label in ["Lab_value"]:
+            current_value = word
+            if current_name:
+                pairs.append({
+                    "name": current_name,
+                    "value": f"{current_value} {word}"
+                })
+                current_name, current_value = None, None
+
+    return pairs
 
 
 def extract_text(file_path: Path) -> str:
@@ -62,12 +93,15 @@ def build_index(input_dir, output_dir, text_model_name, image_model_name, device
         entry = {"file_path": str(f), "has_text": False, "has_image": False}
 
         text = extract_text(f)
+
         if text.strip():
             emb = text_model.encode([text], convert_to_numpy=True, normalize_embeddings=True).astype("float32")
             text_embs.append(emb[0])
             entry["has_text"] = True
             entry["text_preview"] = text[:300]
             entry["text_index_id"] = len(text_embs) - 1
+            pairs = extract_pairs(text)
+            print(pairs)
 
         if f.suffix.lower() in [".png", ".jpg", ".jpeg"]:
             img = Image.open(f).convert("RGB")
