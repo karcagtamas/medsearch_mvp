@@ -19,7 +19,9 @@ from transformers import CLIPProcessor, CLIPModel, AutoTokenizer, AutoModelForTo
 def extract_pairs(text: str):
     # model_name = "d4data/biomedical-ner-all"
     # model_name = "samrawal/bert-base-uncased_clinical-ner"
-    model_name = "dmis-lab/biobert-base-cased-v1.1"
+    # model_name = "dmis-lab/biobert-base-cased-v1.1"
+    # model_name = "lcampillos/roberta-es-clinical-trials-ner"
+    model_name = "emilyalsentzer/Bio_ClinicalBERT"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForTokenClassification.from_pretrained(model_name)
     ner_pipeline = pipeline("ner", model=model, tokenizer=tokenizer, aggregation_strategy="simple")

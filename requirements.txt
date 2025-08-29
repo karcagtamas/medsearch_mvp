@@ -1,6 +1,9 @@
 faiss-cpu
 sentence-transformers
 transformers
+evaluate
+seqeval
+accelerate
 torch
 pdfplumber
 python-docx

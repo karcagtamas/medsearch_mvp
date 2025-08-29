@@ -1,3 +1,4 @@
 .venv/*
 storage/*
 sample_data/*
+outputs/*
