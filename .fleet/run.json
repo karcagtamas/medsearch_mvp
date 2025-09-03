@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "type": "python",
+            "name": "Basic training",
+            "file": "app/train.py",
+            "arguments": ["--train_file", "./test_data/train.txt", "--validation_file", "./test_data/dev.txt", "--test_file", "./test_data/test.txt"]
+        },
+        {
+            "type": "python",
+            "name": "Build index",
+            "file": "app/build_index.py",
+            "arguments": ["--input_dir", "sample_data", "--output_dir", "storage"]
+        },
+        {
+            "type": "python",
+            "name": "Search index",
+            "file": "app/search_index.py",
+            "arguments": ["--index_dir", "storage", "--query_text", "Anything"]
+        }
+    ]
+}
