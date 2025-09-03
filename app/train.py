@@ -276,13 +276,20 @@ def main():
     # Inference example: run on the first test sentence
     example = raw["test"][0]["tokens"]
     model.eval()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    print(device)
+
     inputs = tokenizer(example, is_split_into_words=True, return_tensors="pt", truncation=True)
+    inputs = {k: v.to(device) for k, v in inputs.items()}   # move to GPU/CPU
     with torch.no_grad():
         outputs = model(**inputs)
-        probs = outputs.logits.softmax(-1)[0]
+        probs = outputs.logits.softmax(-1)[0].cpu()
         pred_ids = probs.argmax(-1).tolist()
 
-    word_ids = inputs.word_ids(0)
+    word_ids = inputs["input_ids"].new_zeros(inputs["input_ids"].shape).cpu()  # fix .word_ids issue
+    word_ids = tokenizer(example, is_split_into_words=True).word_ids()
+
     # reconstruct per-token predictions
     pred_tags = []
     last_word = None
