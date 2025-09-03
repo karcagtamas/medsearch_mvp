@@ -1,0 +1,3 @@
+Patient: Isabella Thomas, ID 44556, Female, Age 48.
+Oxygen Saturation: 95 %
+Blood Pressure: 118/78 mmHg

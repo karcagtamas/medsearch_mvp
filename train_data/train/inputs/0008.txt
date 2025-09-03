@@ -1,0 +1,3 @@
+Patient: Olivia Garcia, ID 55667, Female, DOB 1993-11-05.
+Temperature: 36.8 °C
+Cholesterol: 180 mg/dL

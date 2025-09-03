@@ -16,40 +16,41 @@ from transformers import (
 import evaluate
 
 
-# -------------------------
-# Utils: read CoNLL files
-# -------------------------
+def read_text_file(file_path):
+    """Read a text file and return text."""
+    with open(file_path, "r", encoding="utf-8") as f:
+        return f.read().strip()
 
-def read_conll(path: str) -> Tuple[List[List[str]], List[List[str]]]:
-    """Reads a CoNLL file -> lists of tokens and tags (sentence level)."""
+
+def read_tsv_file(file_path):
+    """Read TSV file and return tokens and tags."""
     tokens, tags = [], []
-    sent_tokens, sent_tags = [], []
-    with open(path, "r", encoding="utf-8") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         for line in f:
-            line = line.rstrip("\n")
-            if not line.strip():
-                if sent_tokens:
-                    tokens.append(sent_tokens)
-                    tags.append(sent_tags)
-                    sent_tokens, sent_tags = [], []
+            line = line.strip()
+            if not line:
                 continue
-
-            if "\t" in line:
-                tok, tag = line.split("\t")
-            else:
-                parts = line.split(" ")
-                if len(parts) == 1:
-                    tok, tag = parts[0], "0"
-                else:
-                    tok, tag = parts[0], parts[-1]
-
-            sent_tokens.append(tok)
-            sent_tags.append(tag)
-
-    if sent_tokens:
-        tokens.append(sent_tokens)
-        tags.append(sent_tags)
+            token, tag = line.split("\t")
+            tokens.append(token)
+            tags.append(tag)
     return tokens, tags
+
+
+def create_dataset(inputs_folder: str, results_folder: str):
+    """Create a Hugging Face dataset from text and TSV files."""
+    data = {"tokens": [], "ner_tags": []}
+    files = sorted(os.listdir(inputs_folder))
+    for f in files:
+        if not f.endswith(".txt"):
+            continue
+        input_path = os.path.join(inputs_folder, f)
+        result_path = os.path.join(results_folder, f.replace(".txt", ".tsv"))
+
+        tokens, tags = read_tsv_file(result_path)
+        data["tokens"].append(tokens)
+        data["ner_tags"].append(tags)
+
+    return Dataset.from_dict(data)
 
 
 def build_label_list(train_tags: List[List[str]]) -> List[str]:
@@ -59,16 +60,6 @@ def build_label_list(train_tags: List[List[str]]) -> List[str]:
         labels.remove("O")
         labels = ["O"] + labels
     return labels
-
-
-def make_hf_dataset(tokens: List[List[str]], tags: List[List[str]], label_list: List[str]) -> Dataset:
-    features = Features({
-        "tokens": Sequence(Value("string")),
-        "ner_tags": Sequence(ClassLabel(names=label_list))
-    })
-    # map string tags to indices per ClassLabel later; here keep raw, then cast
-    ds = Dataset.from_dict({"tokens": tokens, "ner_tags": tags})
-    return ds.cast(features)
 
 
 # -------------------------
@@ -151,9 +142,11 @@ def compute_metrics(p, id2label):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--train_file", type=str, required=True)
-    parser.add_argument("--validation_file", type=str, required=True)
-    parser.add_argument("--test_file", type=str, required=True)
+    parser.add_argument("--train_folder", type=str, required=True)
+    parser.add_argument("--validation_folder", type=str, required=True)
+    parser.add_argument("--test_folder", type=str, required=True)
+    parser.add_argument("--inputs_folder_name", type=str, default="inputs")
+    parser.add_argument("--results_folder_name", type=str, default="results")
     parser.add_argument("--model_name", type=str, default="emilyalsentzer/Bio_ClinicalBERT")
     parser.add_argument("--output_dir", type=str, default="outputs/clinicalbert-ner")
     parser.add_argument("--seed", type=int, default=42)
@@ -171,23 +164,19 @@ def main():
 
     set_seed(args.seed)
 
-    # Read datasets
-    train_tokens, train_tags = read_conll(args.train_file)
-    val_tokens, val_tags = read_conll(args.validation_file)
-    test_tokens, test_tags = read_conll(args.test_file)
+    # Load datasets
+    ds_train = create_dataset(os.path.join(args.train_folder, args.inputs_folder_name).__str__(), os.path.join(args.train_folder, args.results_folder_name).__str__())
+    ds_val = create_dataset(os.path.join(args.validation_folder, args.inputs_folder_name).__str__(), os.path.join(args.validation_folder, args.results_folder_name).__str__())
+    ds_test = create_dataset(os.path.join(args.test_folder, args.inputs_folder_name).__str__(), os.path.join(args.test_folder, args.results_folder_name).__str__())
 
     # Build label set from train (safer: union of all splits)
-    label_list = sorted(set(tag for seq in (train_tags + val_tags + test_tags) for tag in seq))
+    print(ds_train)
+    print(ds_val)
+    all_tags = set(tag for tags in ds_train["ner_tags"] + ds_val["ner_tags"] for tag in tags)
+    label_list = sorted(all_tags)
     if "O" in label_list:
         label_list.remove("O")
         label_list = ["O"] + label_list
-
-    # Create HF datasets
-    ds_train = make_hf_dataset(train_tokens, train_tags, label_list)
-    ds_val = make_hf_dataset(val_tokens, val_tags, label_list)
-    ds_test = make_hf_dataset(test_tokens, test_tags, label_list)
-    raw = DatasetDict({"train": ds_train, "validation": ds_val, "test": ds_test})
-
     # Labels ↔ ids
     label2id = {l: i for i, l in enumerate(label_list)}
     id2label = {i: l for l, i in label2id.items()}
@@ -219,7 +208,9 @@ def main():
         tokenized["labels"] = aligned_labels
         return tokenized
 
-    tokenized = raw.map(tokenize_and_align, batched=True, remove_columns=raw["train"].column_names)
+    tokenized_train = ds_train.map(tokenize_and_align, batched=True, remove_columns=["tokens", "ner_tags"])
+    tokenized_val = ds_val.map(tokenize_and_align, batched=True, remove_columns=["tokens", "ner_tags"])
+    tokenized_test = ds_test.map(tokenize_and_align, batched=True, remove_columns=["tokens", "ner_tags"])
 
     # Data collator
     data_collator = DataCollatorForTokenClassification(tokenizer=tokenizer)
@@ -228,7 +219,7 @@ def main():
     training_args = TrainingArguments(
         output_dir=args.output_dir,
         eval_strategy="steps",
-        eval_steps=200,
+        eval_steps=50,
         save_steps=200,
         save_total_limit=3,
         logging_steps=50,
@@ -243,14 +234,14 @@ def main():
         metric_for_best_model="f1",
         greater_is_better=True,
         fp16=args.fp16,
-        report_to=["none"],  # set to ["tensorboard"] if you want logs
+        report_to=["tensorboard"],  # set to ["tensorboard"] if you want logs
     )
 
     trainer = Trainer(
         model=model,
         args=training_args,
-        train_dataset=tokenized["train"],
-        eval_dataset=tokenized["validation"],
+        train_dataset=tokenized_train,
+        eval_dataset=tokenized_val,
         tokenizer=tokenizer,
         data_collator=data_collator,
         compute_metrics=lambda p: compute_metrics(p, id2label),
@@ -262,11 +253,11 @@ def main():
 
     # Eval on dev + test
     print("\nValidation metrics:")
-    val_metrics = trainer.evaluate(tokenized["validation"])
+    val_metrics = trainer.evaluate(tokenized_val)
     print(val_metrics)
 
     print("\nTest metrics:")
-    test_metrics = trainer.evaluate(tokenized["test"])
+    test_metrics = trainer.evaluate(tokenized_test)
     print(test_metrics)
 
     # Save final
@@ -274,14 +265,13 @@ def main():
     tokenizer.save_pretrained(args.output_dir)
 
     # Inference example: run on the first test sentence
-    example = raw["test"][0]["tokens"]
+    example = ds_test[0]["tokens"]
     model.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
-    print(device)
 
     inputs = tokenizer(example, is_split_into_words=True, return_tensors="pt", truncation=True)
-    inputs = {k: v.to(device) for k, v in inputs.items()}   # move to GPU/CPU
+    inputs = {k: v.to(device) for k, v in inputs.items()}  # move to GPU/CPU
     with torch.no_grad():
         outputs = model(**inputs)
         probs = outputs.logits.softmax(-1)[0].cpu()

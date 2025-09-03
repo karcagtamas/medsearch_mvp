@@ -1,0 +1,3 @@
+Patient: Sara Nguyen, ID 24680, Female, Age 29.
+Oxygen Saturation: 98 %
+Blood Sugar: 105 mg/dL

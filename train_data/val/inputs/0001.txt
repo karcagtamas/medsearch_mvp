@@ -1,0 +1,3 @@
+Patient: Michael Lee, ID 55555, Male, Age 60.
+Blood Pressure: 130/85 mmHg
+Cholesterol: 190 mg/dL

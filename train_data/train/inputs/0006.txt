@@ -1,0 +1,3 @@
+Patient: Sophia Martinez, ID 11223, Female, Age 27.
+Blood Sugar: 88 mg/dL
+Cholesterol: 170 mg/dL

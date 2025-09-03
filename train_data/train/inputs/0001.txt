@@ -1,0 +1,3 @@
+Patient: John Smith, ID 12345, Male, Age 45.
+Blood Pressure: 120/80 mmHg
+Glucose: 95 mg/dL

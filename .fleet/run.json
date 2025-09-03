@@ -4,7 +4,7 @@
             "type": "python",
             "name": "Basic training",
             "file": "app/train.py",
-            "arguments": ["--train_file", "./test_data/train.txt", "--validation_file", "./test_data/dev.txt", "--test_file", "./test_data/test.txt"]
+            "arguments": ["--train_folder", "./train_data/train", "--validation_folder", "./train_data/val", "--test_folder", "./train_data/test"]
         },
         {
             "type": "python",

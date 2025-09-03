@@ -1,0 +1,3 @@
+Patient: Ava Clark, ID 66778, Female, Age 33.
+Heart Rate: 85 bpm
+Temperature: 37.2 °C

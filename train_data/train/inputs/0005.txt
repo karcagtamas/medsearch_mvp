@@ -1,0 +1,3 @@
+Patient: David Wilson, ID 98765, Male, Age 61.
+Temperature: 38 °C
+Heart Rate: 95 bpm

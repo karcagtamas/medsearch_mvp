@@ -1,0 +1,3 @@
+Patient: Noah Anderson, ID 77889, Male, Age 55.
+Heart Rate: 72 bpm
+Oxygen Saturation: 97 %

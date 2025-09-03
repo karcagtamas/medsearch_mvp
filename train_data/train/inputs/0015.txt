@@ -1,0 +1,3 @@
+Patient: Benjamin Moore, ID 33221, Male, Age 36.
+Heart Rate: 60 bpm
+Glucose: 105 mg/dL

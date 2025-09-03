@@ -1,0 +1,3 @@
+Patient: Liam Johnson, ID 33445, Male, Age 40.
+Blood Pressure: 125/82 mmHg
+Glucose: 100 mg/dL

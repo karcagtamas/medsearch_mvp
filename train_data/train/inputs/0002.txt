@@ -1,0 +1,3 @@
+Patient: Alice Brown, ID 67890, Female, DOB 1990-02-14.
+Heart Rate: 80 bpm
+Temperature: 37 °C

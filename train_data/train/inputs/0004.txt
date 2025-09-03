@@ -1,0 +1,3 @@
+Patient: Emily Clark, ID 24680, Female, DOB 1985-07-23.
+Blood Pressure: 115/75 mmHg
+Oxygen Saturation: 99 %

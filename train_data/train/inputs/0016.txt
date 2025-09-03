@@ -1,0 +1,3 @@
+Patient: Mia Walker, ID 77441, Female, DOB 1998-01-30.
+Temperature: 36.5 °C
+Cholesterol: 150 mg/dL
